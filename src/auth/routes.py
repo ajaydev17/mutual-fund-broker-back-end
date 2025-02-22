@@ -4,7 +4,7 @@ from src.auth.services import UserService
 from src.db.main import get_session
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from src.errors import UserAlreadyExists, InvalidCredentials
-from src.auth.utils import create_access_token, verify_password_hash, decode_access_token
+from src.auth.utils import create_access_token, verify_password_hash
 from datetime import timedelta
 from fastapi.responses import JSONResponse
 
