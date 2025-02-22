@@ -49,6 +49,8 @@ def decode_access_token(token: str) -> dict:
             key=config_obj.JWT_SECRET_KEY,
             algorithms=[config_obj.JWT_ALGORITHM]
         )
+
+        return token_data
     except jwt.PyJWTError as e:
         logging.exception(e)
         return None
