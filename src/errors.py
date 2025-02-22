@@ -4,12 +4,25 @@ from fastapi import FastAPI, status
 from typing import Any, Callable
 
 # create the exception classes below
-class UserAlreadyExists(Exception):
+class UserException(Exception):
     """
     Raised when the user already exists.
     """
     pass
 
+
+class UserAlreadyExists(UserException):
+    """
+    Raised when the user already exists.
+    """
+    pass
+
+
+class InvalidCredentials(UserException):
+    """
+    Raised when the provided credentials are invalid.
+    """
+    pass
 
 # create the exception handler below
 def create_exception_handler(status_code: int,
@@ -32,6 +45,17 @@ def register_all_exceptions(app: FastAPI):
             initial_detail={
                 "message": "User with email already exists",
                 "error_code": "user_exists"
+            }
+        )
+    )
+
+    app.add_exception_handler(
+        InvalidCredentials,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "Invalid credentials",
+                "error_code": "invalid_credentials"
             }
         )
     )

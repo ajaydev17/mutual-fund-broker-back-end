@@ -3,9 +3,13 @@ from src.auth.schemas import UserViewSchema, UserCreateSchema, UserLoginSchema
 from src.auth.services import UserService
 from src.db.main import get_session
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from src.errors import UserAlreadyExists
-from src.auth.utils import create_access_token, verify_password_hash
+from src.errors import UserAlreadyExists, InvalidCredentials
+from src.auth.utils import create_access_token, verify_password_hash, decode_access_token
+from datetime import timedelta
+from fastapi.responses import JSONResponse
 
+# refresh token expiry value
+REFRESH_TOKEN_EXPIRY = 2
 
 # define the router
 auth_router = APIRouter()
@@ -41,6 +45,34 @@ async def login(user_data: UserLoginSchema, session: AsyncSession = Depends(get_
         is_password_valid = verify_password_hash(password, user.password_hash)
 
         if is_password_valid:
-            access_token =
+            access_token = create_access_token(
+                user_data={
+                    'email': user.email,
+                    'user_id': str(user.user_id)
+                }
+            )
+
+            refresh_token = create_access_token(
+                user_data={
+                    'email': user.email,
+                    'user_id': str(user.user_id)
+                },
+                expiry=timedelta(days=REFRESH_TOKEN_EXPIRY),
+                refresh=True
+            )
+
+            return JSONResponse(
+                content={
+                    'message': 'Login Successful',
+                    'access_token': access_token,
+                    'refresh_token': refresh_token,
+                    'user': {
+                        'email': user.email,
+                        'user_id': user.user_id
+                    }
+                }
+            )
+
+    raise InvalidCredentials()
 
 
