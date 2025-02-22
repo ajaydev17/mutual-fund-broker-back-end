@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
+    REDIS_URL: str
 
     # config the model what to get from the env file
     model_config = SettingsConfigDict(

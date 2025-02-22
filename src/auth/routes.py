@@ -7,7 +7,8 @@ from src.errors import UserAlreadyExists, InvalidCredentials, InvalidToken
 from src.auth.utils import create_access_token, verify_password_hash
 from datetime import timedelta, datetime
 from fastapi.responses import JSONResponse
-from src.auth.dependencies import RefreshTokenBearer
+from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer
+from src.db.redis_db import add_jti_to_blocklist
 
 # refresh token expiry value
 REFRESH_TOKEN_EXPIRY = 2
@@ -20,6 +21,7 @@ user_service = UserService()
 
 # create the instance of refresh token class, access token class
 refresh_token_bearer = RefreshTokenBearer()
+access_token_bearer = AccessTokenBearer()
 
 # create the routes below
 @auth_router.post('/signup', response_model=UserViewSchema, status_code=status.HTTP_201_CREATED)
@@ -96,5 +98,19 @@ async def get_new_access_token(token_details: dict = Depends(refresh_token_beare
         )
 
     raise InvalidToken()
+
+@auth_router.post('/logout')
+async def logout(token_details: dict = Depends(access_token_bearer)) -> dict:
+    jti = token_details['jti']
+    await add_jti_to_blocklist(jti)
+
+    return JSONResponse(
+        content={
+            "message": "Logout successful"
+        },
+        status_code=status.HTTP_200_OK
+    )
+
+
 
 

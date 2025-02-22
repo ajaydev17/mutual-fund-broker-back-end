@@ -1,12 +1,10 @@
 from fastapi.security import HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 from src.auth.utils import decode_access_token
-from fastapi import status, Request, Depends
-from src.db.main import get_session
-from sqlmodel.ext.asyncio.session import AsyncSession
+from fastapi import Request
 from src.auth.services import UserService
-from typing import List, Any
 from src.errors import InvalidToken, RefreshTokenRequired, AccessTokenRequired
+from src.db.redis_db import check_jti_in_blocklist
 
 # create an instance of the user service
 user_service = UserService()
@@ -22,7 +20,12 @@ class TokenBearer(HTTPBearer):
         token = creds.credentials
         token_data = decode_access_token(token)
 
+        # check token is valid
         if not self.token_valid(token):
+            raise InvalidToken()
+
+        # check token is not in the blocklist
+        if await check_jti_in_blocklist(token_data['jti']):
             raise InvalidToken()
 
         self.verify_token_data(token_data)
