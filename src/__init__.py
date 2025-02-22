@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from src.errors import register_all_exceptions
 from src.auth.routes import auth_router
+from src.middlewares import register_middlewares
 
 # version value
 version = 'v1'
@@ -14,6 +15,9 @@ app = FastAPI(
 
 # register all exceptions
 register_all_exceptions(app)
+
+# register all middleware
+# register_middlewares(app)
 
 # include the router in the app
 app.include_router(

@@ -26,6 +26,7 @@ class User(SQLModel, table=True):
         ),
         exclude=True
     )
+    is_verified: bool = Field(default=False)
     created_at: datetime = Field(
         sa_column=Column(
             pg.TIMESTAMP(timezone=True),

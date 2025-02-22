@@ -18,6 +18,13 @@ class UserAlreadyExists(UserException):
     pass
 
 
+class UserNotFound(UserException):
+    """
+    Raised when the user is not found.
+    """
+    pass
+
+
 class InvalidCredentials(UserException):
     """
     Raised when the provided credentials are invalid.
@@ -42,6 +49,10 @@ class RefreshTokenRequired(UserException):
     """
     Raised when the user is not authenticated or provided access token instead of refresh token.
     """
+    pass
+
+class AccountNotVerified(UserException):
+    """Account not yet verified"""
     pass
 
 # create the exception handler below
@@ -114,4 +125,27 @@ def register_all_exceptions(app: FastAPI):
                 "error_code": "refresh_token_required"
             }
         )
+    )
+
+    app.add_exception_handler(
+        UserNotFound,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "User not found",
+                "error_code": "user_not_found"
+            }
+        )
+    )
+
+    app.add_exception_handler(
+        AccountNotVerified,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "Account Not verified",
+                "error_code": "account_not_verified",
+                "resolution": "Please check your email for verification details"
+            },
+        ),
     )

@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, status
-from src.auth.schemas import UserViewSchema, UserCreateSchema, UserLoginSchema
+from src.auth.schemas import UserViewSchema, UserCreateSchema, UserLoginSchema, EmailSchema, PasswordResetRequestSchema, PasswordResetConfirmSchema
 from src.auth.services import UserService
+from src.config import config_obj
 from src.db.main import get_session
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from src.errors import UserAlreadyExists, InvalidCredentials, InvalidToken
-from src.auth.utils import create_access_token, verify_password_hash
+from src.errors import UserAlreadyExists, InvalidCredentials, InvalidToken, UserNotFound, AccountNotVerified
+from src.auth.utils import create_access_token, verify_password_hash, create_url_safe_token, decode_url_safe_token, generate_password_hash
 from datetime import timedelta, datetime
 from fastapi.responses import JSONResponse
 from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer
 from src.db.redis_db import add_jti_to_blocklist
+from src.mail import mail, create_message
+from fastapi.exceptions import HTTPException
 
 # refresh token expiry value
 REFRESH_TOKEN_EXPIRY = 2
@@ -19,14 +22,14 @@ auth_router = APIRouter()
 # create a user service instance
 user_service = UserService()
 
-# create the instance of refresh token class, access token class
+# create the instance of refresh token class, access token class, verified checker
 refresh_token_bearer = RefreshTokenBearer()
 access_token_bearer = AccessTokenBearer()
 
 # create the routes below
-@auth_router.post('/signup', response_model=UserViewSchema, status_code=status.HTTP_201_CREATED)
+@auth_router.post('/signup', status_code=status.HTTP_201_CREATED)
 async def create_user_account(user_data: UserCreateSchema,
-                              session: AsyncSession = Depends(get_session)) -> UserViewSchema:
+                              session: AsyncSession = Depends(get_session)) -> dict:
     # get the email address
     email = user_data.email
 
@@ -37,7 +40,32 @@ async def create_user_account(user_data: UserCreateSchema,
         raise UserAlreadyExists()
 
     user = await user_service.create_user(user_data, session)
-    return user
+
+    token = create_url_safe_token({"email": email})
+
+    link = f"http://{config_obj.DOMAIN}/api/v1/auth/verify/{token}"
+
+    html = f"""
+        <h1>Verify your Email</h1>
+        <p>Please click this <a href="{link}">link</a> to verify your email</p>
+        """
+
+    emails = [email]
+
+    subject = "Verify Your email"
+
+    message = create_message(
+        recipients=emails,
+        subject='Verify your email!',
+        body=html
+    )
+
+    await mail.send_message(message)
+
+    return {
+        "message": "Account Created! Check email to verify your account",
+        "user": user,
+    }
 
 @auth_router.post('/login')
 async def login(user_data: UserLoginSchema, session: AsyncSession = Depends(get_session)) -> dict:
@@ -46,6 +74,9 @@ async def login(user_data: UserLoginSchema, session: AsyncSession = Depends(get_
     password = user_data.password
 
     user = await user_service.get_user_by_email(email, session)
+
+    if not user.is_verified:
+        raise AccountNotVerified()
 
     if user:
         is_password_valid = verify_password_hash(password, user.password_hash)
@@ -81,6 +112,29 @@ async def login(user_data: UserLoginSchema, session: AsyncSession = Depends(get_
 
     raise InvalidCredentials()
 
+@auth_router.get("/verify/{token}")
+async def verify_user_account(token: str, session: AsyncSession = Depends(get_session)) -> dict:
+    token_data = decode_url_safe_token(token)
+    user_email = token_data.get("email")
+
+    if user_email:
+        user = await user_service.get_user_by_email(user_email, session)
+
+        if not user:
+            raise UserNotFound()
+
+        await user_service.update_user(user, {"is_verified": True}, session)
+
+        return JSONResponse(
+            content={"message": "Account verified successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+
+    return JSONResponse(
+        content={"message": "Error occurred during verification"},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
 
 @auth_router.get('/refresh_token')
 async def get_new_access_token(token_details: dict = Depends(refresh_token_bearer)) -> dict:
@@ -109,6 +163,97 @@ async def logout(token_details: dict = Depends(access_token_bearer)) -> dict:
             "message": "Logout successful"
         },
         status_code=status.HTTP_200_OK
+    )
+
+@auth_router.post("/send_mail")
+async def send_mail(emails: EmailSchema):
+    emails = emails.addresses
+
+    html = "<h1>Welcome to the app</h1>"
+    subject = "Welcome to our app"
+
+    message = create_message(
+        recipients=emails,
+        subject=subject,
+        body=html
+    )
+
+    await mail.send_message(message)
+
+    return {"message": "Email sent successfully"}
+
+@auth_router.post("/password-reset-request")
+async def password_reset_request(email_data: PasswordResetRequestSchema, session: AsyncSession = Depends(get_session)):
+    email = email_data.email
+
+    user = await user_service.get_user_by_email(email, session)
+
+    if not user:
+        raise UserNotFound()
+
+    if not user.is_verified:
+        raise AccountNotVerified()
+
+    token = create_url_safe_token({"email": email})
+    link = f"http://{config_obj.DOMAIN}/api/v1/auth/password-reset-confirm/{token}"
+
+    html_message = f"""
+    <h1>Reset Your Password</h1>
+    <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>
+    """
+
+    subject = "Reset Your Password"
+
+    message = create_message(
+        recipients=[email],
+        subject=subject,
+        body=html_message
+    )
+
+    await mail.send_message(message)
+
+    return JSONResponse(
+        content={
+            "message": "Please check your email for instructions to reset your password",
+        },
+        status_code=status.HTTP_200_OK,
+    )
+
+@auth_router.post("/password-reset-confirm/{token}")
+async def reset_password(token: str, passwords: PasswordResetConfirmSchema, session: AsyncSession = Depends(get_session)):
+    new_password = passwords.new_password
+    confirm_password = passwords.confirm_new_password
+
+    if new_password != confirm_password:
+        raise HTTPException(
+            detail="Passwords do not match", status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    token_data = decode_url_safe_token(token)
+
+    email = token_data.get("email")
+
+    if email:
+        user = await user_service.get_user_by_email(email, session)
+
+        if not user:
+            raise UserNotFound()
+
+        if not user.is_verified:
+            raise AccountNotVerified()
+
+        password_hash = generate_password_hash(new_password)
+
+        await user_service.update_user(user, {'password_hash': password_hash}, session)
+
+        return JSONResponse(
+            content={"message": "Password reset Successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+
+    return JSONResponse(
+        content={"message": "Error occurred during password reset."},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
 
 

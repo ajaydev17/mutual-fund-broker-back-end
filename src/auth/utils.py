@@ -4,6 +4,7 @@ from src.config import config_obj
 import jwt
 import uuid
 import logging
+from itsdangerous import URLSafeTimedSerializer
 
 # access token expiry time
 ACCESS_TOKEN_EXPIRY = 3600
@@ -54,3 +55,21 @@ def decode_access_token(token: str) -> dict:
     except jwt.PyJWTError as e:
         logging.exception(e)
         return None
+
+# create a serializer for url safer
+serializer = URLSafeTimedSerializer(
+    secret_key=config_obj.JWT_SECRET_KEY, salt="email-configuration"
+)
+
+# create an url safe token
+def create_url_safe_token(data: dict):
+    token = serializer.dumps(data)
+    return token
+
+# decode the url token
+def decode_url_safe_token(token: str):
+    try:
+        token_data = serializer.loads(token)
+        return token_data
+    except Exception as e:
+        logging.error(str(e))
