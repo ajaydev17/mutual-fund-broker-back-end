@@ -1,0 +1,30 @@
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from src.db.models import User
+from src.auth.schemas import UserViewSchema, UserCreateSchema, UserLoginSchema
+from src.auth.utils import generate_password_hash
+
+
+# define all the functionalities required here
+class UserService:
+
+    # get user by email
+    async def get_user_by_email(self, email: str, session: AsyncSession) -> UserViewSchema:
+        statement = select(User).where(User.email==email)
+        result = await session.exec(statement)
+        user = result.first()
+        return user
+
+    # create user using email and password
+    async def create_user(self, user_data: UserCreateSchema, session: AsyncSession) -> UserViewSchema:
+        user_data_dict = user_data.model_dump()
+        user = User(**user_data_dict)
+
+        # generate password hash
+        password = generate_password_hash(user_data_dict['password'])
+        user.password_hash = password
+
+        # add user to db
+        session.add(user)
+        await session.commit()
+        return user
