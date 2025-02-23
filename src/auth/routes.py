@@ -12,6 +12,7 @@ from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer
 from src.db.redis_db import add_jti_to_blocklist
 from src.mail import mail, create_message
 from fastapi.exceptions import HTTPException
+from src.celery_tasks import send_email
 
 # refresh token expiry value
 REFRESH_TOKEN_EXPIRY = 2
@@ -51,16 +52,9 @@ async def create_user_account(user_data: UserCreateSchema,
         """
 
     emails = [email]
-
     subject = "Verify Your email"
 
-    message = create_message(
-        recipients=emails,
-        subject='Verify your email!',
-        body=html
-    )
-
-    await mail.send_message(message)
+    send_email.delay(emails, subject, html)
 
     return {
         "message": "Account Created! Check email to verify your account",
@@ -172,13 +166,7 @@ async def send_mail(emails: EmailSchema):
     html = "<h1>Welcome to the app</h1>"
     subject = "Welcome to our app"
 
-    message = create_message(
-        recipients=emails,
-        subject=subject,
-        body=html
-    )
-
-    await mail.send_message(message)
+    send_email.delay(emails, subject, html)
 
     return {"message": "Email sent successfully"}
 
@@ -204,13 +192,7 @@ async def password_reset_request(email_data: PasswordResetRequestSchema, session
 
     subject = "Reset Your Password"
 
-    message = create_message(
-        recipients=[email],
-        subject=subject,
-        body=html_message
-    )
-
-    await mail.send_message(message)
+    send_email.delay([email], subject, html_message)
 
     return JSONResponse(
         content={
