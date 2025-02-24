@@ -55,6 +55,27 @@ class AccountNotVerified(UserException):
     """Account not yet verified"""
     pass
 
+
+# create the exception classes below
+class InvestmentException(Exception):
+    """
+    Raised when the user already exists.
+    """
+    pass
+
+
+class InvestmentNotFound(InvestmentException):
+    """
+    Raised when the user already exists.
+    """
+    pass
+
+class SchemeCodeAlreadyExists(InvestmentException):
+    """
+    Raised when the user already exists.
+    """
+    pass
+
 # create the exception handler below
 def create_exception_handler(status_code: int,
                              initial_detail: Any) -> Callable[[Request, Exception], JSONResponse]:
@@ -148,4 +169,26 @@ def register_all_exceptions(app: FastAPI):
                 "resolution": "Please check your email for verification details"
             },
         ),
+    )
+
+    app.add_exception_handler(
+        InvestmentNotFound,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Investment not found",
+                "error_code": "investment_not_found"
+            }
+        )
+    )
+
+    app.add_exception_handler(
+        SchemeCodeAlreadyExists,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Investment already exists for this scheme code",
+                "error_code": "investment_already_exists_for_this_scheme_code"
+            }
+        )
     )

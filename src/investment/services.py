@@ -1,39 +1,48 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.investment.schemas import InvestmentCreateSchema, InvestmentUpdateSchema, InvestmentViewSchema
-from sqlmodel import select, desc
+
+from src.errors import InvestmentNotFound
+from src.investment.schemas import InvestmentCreateSchema, InvestmentUpdateSchema
+from sqlmodel import select, desc, and_
 from src.db.models import Investment
+from src.investment.utils import get_open_schemes_codes
 
 
 class InvestmentService:
 
-    async def get_all_investements(self, session: AsyncSession):
+    async def get_all_investments(self, session: AsyncSession):
         statement = select(Investment).order_by(desc(Investment.created_at))
         result = await session.exec(statement)
         return result.all()
 
-    async def get_investment_by_user(self, user_id: str, session: AsyncSession):
-        statement = select(Investment).where(Investment.user_id == user_id).order_by(desc(Investment.created_at))
+    async def get_investment_by_user_id_scheme_code(self, user_id: str, scheme_code: int, session: AsyncSession):
+        statement = select(Investment).where(and_(Investment.user_id == user_id, Investment.scheme_code == scheme_code)).order_by(desc(Investment.created_at))
         result = await session.exec(statement)
-        return result.all()
-
-    async def get_an_investment(self, investment_id: str, session: AsyncSession):
-        statement = select(Investment).where(Investment.investment_id == investment_id)
-        result = await session.exec(statement)
-        investment = result.first()
-
-        return investment if investment else None
+        return result.first()
 
     async def create_an_investment(self, investment_data: InvestmentCreateSchema, user_id: str, session: AsyncSession):
+
+        found_scheme = await get_open_schemes_codes(investment_data.scheme_code)
+
+        if not found_scheme:
+            return InvestmentNotFound()
+
         investment_data_dict = investment_data.model_dump()
         investment = Investment(**investment_data_dict)
         investment.user_id = user_id
+        investment.fund_family = found_scheme['Mutual_Fund_Family']
+        investment.scheme_name = found_scheme['Scheme_Name']
+        investment.nav = found_scheme['Net_Asset_Value']
+        investment.date = found_scheme['Date']
+        investment.current_value = found_scheme['Net_Asset_Value']* investment_data.units
+
         session.add(investment)
         await session.commit()
         await session.refresh(investment)
+
         return investment
 
-    async def update_an_investment(self, investment_id: str, investment_data: InvestmentUpdateSchema, session: AsyncSession):
-        investment = await self.get_an_investment(investment_id, session)
+    async def update_an_investment(self, user_id: str, investment_data: InvestmentUpdateSchema, session: AsyncSession):
+        investment = await self.get_investment_by_user_id_scheme_code(user_id, investment_data.scheme_code, session)
 
         if not investment:
             return None
@@ -43,12 +52,16 @@ class InvestmentService:
         for key, value in investment_data_dict.items():
             setattr(investment, key, value)
 
+        if "units" in investment_data_dict and investment.current_value is not None and investment.nav is not None:
+            investment.current_value = investment.nav * investment_data_dict["units"]
+
         await session.commit()
         await session.refresh(investment)
+
         return investment
 
-    async def delete_book(self, investment_id: str, session: AsyncSession):
-        investment = await self.get_an_investment(investment_id, session)
+    async def delete_an_investment(self, user_id: str, scheme_code: str, session: AsyncSession):
+        investment = await self.get_investment_by_user_id_scheme_code(user_id, scheme_code, session)
 
         if not investment:
             return None

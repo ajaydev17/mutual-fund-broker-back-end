@@ -17,7 +17,11 @@ class InvestmentViewSchema(BaseModel):
 class InvestmentCreateSchema(BaseModel):
     scheme_code: int
     units: float
-    fund_family: str
 
 class InvestmentUpdateSchema(BaseModel):
+    scheme_code: int
     units: float
+
+
+class InvestmentDeleteSchema(BaseModel):
+    scheme_code: int

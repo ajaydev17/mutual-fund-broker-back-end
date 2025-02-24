@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List
+from src.investment.schemas import InvestmentViewSchema
 
 
 # create schemas for user model
@@ -35,3 +36,7 @@ class PasswordResetRequestSchema(BaseModel):
 class PasswordResetConfirmSchema(BaseModel):
     new_password: str
     confirm_new_password: str
+
+
+class UserInvestmentSchemaView(UserViewSchema):
+    investments: List[InvestmentViewSchema]

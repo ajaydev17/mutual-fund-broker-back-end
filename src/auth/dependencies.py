@@ -1,10 +1,12 @@
 from fastapi.security import HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 from src.auth.utils import decode_access_token
-from fastapi import Request
+from fastapi import Request, Depends
 from src.auth.services import UserService
 from src.errors import InvalidToken, RefreshTokenRequired, AccessTokenRequired
 from src.db.redis_db import check_jti_in_blocklist
+from src.db.main import get_session
+from sqlalchemy.ext.asyncio.session import AsyncSession
 
 # create an instance of the user service
 user_service = UserService()
@@ -53,3 +55,12 @@ class RefreshTokenBearer(TokenBearer):
     def verify_token_data(self, token_data: dict) -> None:
         if token_data and not token_data['refresh']:
             raise RefreshTokenRequired()
+
+
+# create an instance of access token bearer class
+access_token_bearer = AccessTokenBearer()
+
+async def get_current_user(token_details: dict = Depends(access_token_bearer), session: AsyncSession = Depends(get_session)):
+    user_email = token_details['user']['email']
+    user = await user_service.get_user_by_email(user_email, session)
+    return user

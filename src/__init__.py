@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from src.errors import register_all_exceptions
 from src.auth.routes import auth_router
+from src.investment.routes import investment_router
 from src.middlewares import register_middlewares
 
 # version value
@@ -34,4 +35,9 @@ app.include_router(
     auth_router,
     prefix=f'/api/{version}/auth',
     tags=['auth']
+)
+app.include_router(
+    investment_router,
+    prefix=f'/api/{version}/investment',
+    tags=['investment']
 )

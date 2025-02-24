@@ -13,13 +13,13 @@ async_engine = AsyncEngine(
     )
 )
 
+session_maker = sessionmaker(
+    bind=async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
+
 # get the session object using session maker
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    session_maker = sessionmaker(
-        bind=async_engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
-
     async with session_maker() as session:
         yield session

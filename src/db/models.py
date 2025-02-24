@@ -64,8 +64,12 @@ class Investment(SQLModel, table=True):
         default=None,
         foreign_key='users.user_id'
     )
+    scheme_name: str
     scheme_code: int
     units: float
+    nav: float
+    date: str
+    current_value: float
     fund_family: str
     user: Optional[User] = Relationship(back_populates="investments")
     created_at: datetime = Field(

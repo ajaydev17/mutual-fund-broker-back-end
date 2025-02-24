@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from src.auth.schemas import UserViewSchema, UserCreateSchema, UserLoginSchema, EmailSchema, PasswordResetRequestSchema, PasswordResetConfirmSchema
+from src.auth.schemas import UserViewSchema, UserCreateSchema, UserLoginSchema, EmailSchema, PasswordResetRequestSchema, PasswordResetConfirmSchema, UserInvestmentSchemaView
 from src.auth.services import UserService
 from src.config import config_obj
 from src.db.main import get_session
@@ -8,7 +8,7 @@ from src.errors import UserAlreadyExists, InvalidCredentials, InvalidToken, User
 from src.auth.utils import create_access_token, verify_password_hash, create_url_safe_token, decode_url_safe_token, generate_password_hash
 from datetime import timedelta, datetime
 from fastapi.responses import JSONResponse
-from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer
+from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user
 from src.db.redis_db import add_jti_to_blocklist
 from src.mail import mail, create_message
 from fastapi.exceptions import HTTPException
@@ -29,7 +29,7 @@ access_token_bearer = AccessTokenBearer()
 
 # create the routes below
 @auth_router.post('/signup', status_code=status.HTTP_201_CREATED)
-async def create_user_account(user_data: UserCreateSchema,
+async def create_user(user_data: UserCreateSchema,
                               session: AsyncSession = Depends(get_session)) -> dict:
     # get the email address
     email = user_data.email
@@ -62,7 +62,7 @@ async def create_user_account(user_data: UserCreateSchema,
     }
 
 @auth_router.post('/login')
-async def login(user_data: UserLoginSchema, session: AsyncSession = Depends(get_session)) -> dict:
+async def login_user(user_data: UserLoginSchema, session: AsyncSession = Depends(get_session)) -> dict:
     # get the email and password
     email = user_data.email
     password = user_data.password
@@ -107,7 +107,7 @@ async def login(user_data: UserLoginSchema, session: AsyncSession = Depends(get_
     raise InvalidCredentials()
 
 @auth_router.get("/verify/{token}")
-async def verify_user_account(token: str, session: AsyncSession = Depends(get_session)) -> dict:
+async def verify_user(token: str, session: AsyncSession = Depends(get_session)) -> dict:
     token_data = decode_url_safe_token(token)
     user_email = token_data.get("email")
 
@@ -148,7 +148,7 @@ async def get_new_access_token(token_details: dict = Depends(refresh_token_beare
     raise InvalidToken()
 
 @auth_router.post('/logout')
-async def logout(token_details: dict = Depends(access_token_bearer)) -> dict:
+async def logout_user(token_details: dict = Depends(access_token_bearer)) -> dict:
     jti = token_details['jti']
     await add_jti_to_blocklist(jti)
 
@@ -160,7 +160,7 @@ async def logout(token_details: dict = Depends(access_token_bearer)) -> dict:
     )
 
 @auth_router.post("/send_mail")
-async def send_mail(emails: EmailSchema):
+async def send_mail(emails: EmailSchema, token_details: dict = Depends(access_token_bearer)):
     emails = emails.addresses
 
     html = "<h1>Welcome to the app</h1>"
@@ -237,6 +237,10 @@ async def reset_password(token: str, passwords: PasswordResetConfirmSchema, sess
         content={"message": "Error occurred during password reset."},
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+
+@auth_router.get('/me', response_model=UserInvestmentSchemaView)
+async def get_current_user_details(current_user: UserViewSchema = Depends(get_current_user)) -> UserInvestmentSchemaView:
+    return current_user
 
 
 
