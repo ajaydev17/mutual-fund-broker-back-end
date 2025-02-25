@@ -12,7 +12,7 @@ logger.disabled = True
 
 def register_middlewares(app: FastAPI):
 
-    # creating a http middleware
+    # creating a http middleware for logging http requests
     @app.middleware('http')
     async def custom_logging(request: Request, call_next):
         start_time = time.time()
@@ -23,20 +23,22 @@ def register_middlewares(app: FastAPI):
         print(message)
         return response
 
-    @app.middleware('http')
-    async def check_authorization_header(request: Request, call_next):
-        if not 'Authorization' in request.headers:
-            return JSONResponse(
-                content={
-                    'message': 'Not Authenticated',
-                    'resolution': 'Please provide the right credentials to proceed'
-                },
-                status_code=status.HTTP_401_UNAUTHORIZED
-            )
+    # check header for authorization
+    # @app.middleware('http')
+    # async def check_authorization_header(request: Request, call_next):
+    #     if not 'Authorization' in request.headers:
+    #         return JSONResponse(
+    #             content={
+    #                 'message': 'Not Authenticated',
+    #                 'resolution': 'Please provide the right credentials to proceed'
+    #             },
+    #             status_code=status.HTTP_401_UNAUTHORIZED
+    #         )
+    #
+    #     response = await call_next(request)
+    #     return response
 
-        response = await call_next(request)
-        return response
-
+    # cors middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=['*'],
@@ -45,6 +47,7 @@ def register_middlewares(app: FastAPI):
         allow_credentials=True
     )
 
+    # add trusted hosts middleware
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=['localhost', '127.0.0.1', '0.0.0.0']

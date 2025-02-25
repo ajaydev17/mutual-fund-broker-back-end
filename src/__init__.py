@@ -28,7 +28,7 @@ app = FastAPI(
 register_all_exceptions(app)
 
 # register all middleware
-# register_middlewares(app)
+register_middlewares(app)
 
 # include the router in the app
 app.include_router(

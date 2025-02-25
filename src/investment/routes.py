@@ -28,6 +28,7 @@ async def create_an_investment(investment_data: InvestmentCreateSchema, session:
     if is_scheme_code_exists:
         raise SchemeCodeAlreadyExists()
 
+    # create an investment
     investment = await investment_service.create_an_investment(investment_data, user_id, session)
     return investment
 
@@ -36,6 +37,7 @@ async def create_an_investment(investment_data: InvestmentCreateSchema, session:
 async def update_an_investment(investment_data: InvestmentUpdateSchema, session: AsyncSession = Depends(get_session), token_details: dict = Depends(access_token_bearer)) -> dict:
     user_id = token_details.get('user')['user_id']
 
+    # update the investment
     investment = await investment_service.update_an_investment(user_id, investment_data, session)
 
     if investment:
@@ -48,6 +50,7 @@ async def update_an_investment(investment_data: InvestmentUpdateSchema, session:
 async def delete_an_investment(investment_data: InvestmentDeleteSchema, session: AsyncSession = Depends(get_session), token_details: dict = Depends(access_token_bearer)) -> None:
     user_id = token_details.get('user')['user_id']
 
+    # delete the investment
     investment = await investment_service.delete_an_investment(user_id, investment_data.scheme_code, session)
 
     if not investment:
@@ -55,3 +58,8 @@ async def delete_an_investment(investment_data: InvestmentDeleteSchema, session:
     else:
         return None
 
+# update nav of all the investments
+@investment_router.post('/update-all-navs', status_code=status.HTTP_200_OK)
+async def update_all_navs(session: AsyncSession = Depends(get_session)):
+    is_update_done = await investment_service.update_nav_for_all_investments(session)
+    return is_update_done

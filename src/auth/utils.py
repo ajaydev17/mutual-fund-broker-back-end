@@ -44,6 +44,7 @@ def create_access_token(user_data: dict, expiry: timedelta = None, refresh: bool
 
 # method which will decode the jwt token
 def decode_access_token(token: str) -> dict:
+    # decode the token
     try:
         token_data = jwt.decode(
             jwt=token,
