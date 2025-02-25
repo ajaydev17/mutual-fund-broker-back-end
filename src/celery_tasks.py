@@ -7,7 +7,7 @@ from src.config import config_obj
 from celery.exceptions import Retry
 
 # API URL for NAV updates
-API_URL = f"http://{config_obj.DOMAIN}/api/v1/investments/update-all-navs"
+API_URL = f"http://{config_obj.DOMAIN}/api/v1/investment/update-all-navs"
 
 @c_app.task()
 def send_email(recipients: List[str], subject: str, body: str):

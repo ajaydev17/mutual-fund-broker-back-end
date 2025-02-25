@@ -107,7 +107,7 @@ class InvestmentService:
             print("Done updating investments every 5 minutes...")
 
             return {
-                'message': 'Update successful'
+                'message': 'All NAV Updated successfully!!.'
             }
         except Exception as e:
             print(f"Exception occurred while updating the NAV details: {str(e)}")
