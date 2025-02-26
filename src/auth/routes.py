@@ -274,7 +274,7 @@ async def get_current_user_details(current_user: UserViewSchema = Depends(get_cu
 # route for welcome message
 # route for getting the current logged in user
 @auth_router.get('/welcome')
-async def get_current_user_details():
+async def welcome_message():
     return {
         "message": "Welcome to Your Portfolio"
     }

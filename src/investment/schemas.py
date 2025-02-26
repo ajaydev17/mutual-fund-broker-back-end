@@ -17,12 +17,22 @@ class InvestmentViewSchema(BaseModel):
 class InvestmentCreateSchema(BaseModel):
     scheme_code: int
     units: float
+    scheme_name: str
+    nav: float
+    date: str
+    current_value: float
+    fund_family: str
 
 # schema for updating the investment
 class InvestmentUpdateSchema(BaseModel):
     scheme_code: int
     units: float
+    current_value: float
 
 # schema for deleting the investment
 class InvestmentDeleteSchema(BaseModel):
+    scheme_code: int
+
+
+class InvestmentGetSchema(BaseModel):
     scheme_code: int

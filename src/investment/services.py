@@ -1,11 +1,11 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from src.errors import InvestmentNotFound
 from src.investment.schemas import InvestmentCreateSchema, InvestmentUpdateSchema
 from sqlmodel import select, desc, and_
 from src.db.models import Investment
-from src.investment.utils import get_open_schemes_codes
-from decimal import Decimal, ROUND_HALF_UP
+from src.investment.utils import get_open_schemes_codes, get_fund_details_from_RapidAPI, read_json_from_file
+import json
+import os
+
 
 
 class InvestmentService:
@@ -25,22 +25,11 @@ class InvestmentService:
     # create an investment
     async def create_an_investment(self, investment_data: InvestmentCreateSchema, user_id: str, session: AsyncSession):
 
-        # get the scheme details from RapidAPI
-        found_scheme = await get_open_schemes_codes(investment_data.scheme_code)
-
-        # if scheme not found in RapidAPI
-        if not found_scheme:
-            return InvestmentNotFound()
-
         # update the investment details
         investment_data_dict = investment_data.model_dump()
+        print(f"investment details: {str(investment_data_dict)}")
         investment = Investment(**investment_data_dict)
         investment.user_id = user_id
-        investment.fund_family = found_scheme['Mutual_Fund_Family']
-        investment.scheme_name = found_scheme['Scheme_Name']
-        investment.nav = Decimal(found_scheme['Net_Asset_Value']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        investment.date = found_scheme['Date']
-        investment.current_value = Decimal(found_scheme['Net_Asset_Value'] * investment_data.units).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # add to the db
         session.add(investment)
@@ -65,10 +54,6 @@ class InvestmentService:
         # update the attributes
         for key, value in investment_data_dict.items():
             setattr(investment, key, value)
-
-        # update the current nav values of units
-        if "units" in investment_data_dict and investment.current_value is not None and investment.nav is not None:
-            investment.current_value = Decimal(investment.nav * investment_data_dict["units"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         await session.commit()
         await session.refresh(investment)
@@ -99,8 +84,9 @@ class InvestmentService:
         try:
             for investment in investments:
                 latest_mutual_fund_info = await get_open_schemes_codes(investment.scheme_code)
-                investment.nav = Decimal(latest_mutual_fund_info['Net_Asset_Value']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                investment.current_value = Decimal(latest_mutual_fund_info['Net_Asset_Value'] * investment.units * 6).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                investment.date = latest_mutual_fund_info['Date']
+                investment.nav = round((latest_mutual_fund_info['Net_Asset_Value']), 4)
+                investment.current_value = round((latest_mutual_fund_info['Net_Asset_Value'] * investment.units), 4)
                 session.add(investment)
 
             await session.commit()
@@ -114,4 +100,27 @@ class InvestmentService:
             print(f"Exception occurred while updating the NAV details: {str(e)}")
             return {
                 'message': 'Update not successful'
+            }
+
+
+    async def get_data_from_RapidAPI(self):
+        try:
+            data = await get_fund_details_from_RapidAPI()
+            return data
+        except Exception as e:
+            print(f"Error reading JSON from file: {str(e)}")
+            return {
+                "scheme_codes": [],
+                "fund_details": {}
+            }
+
+    async def get_data_from_file(self):
+        try:
+            data = await read_json_from_file()
+            return data
+        except Exception as e:
+            print(f"Error reading JSON from file: {str(e)}")
+            return {
+                "scheme_codes": [],
+                "fund_details": {}
             }

@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 # make a connection to postgres using AsyncEngine
 async_engine = AsyncEngine(
     create_engine(
-        url=config_obj.DATABASE_URL,
+        url=config_obj.DEV_DATABASE_URL,
         echo=True
     )
 )
@@ -18,7 +18,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     session_maker = sessionmaker(
         bind=async_engine,
         class_=AsyncSession,
-        expire_on_commit=False
+        expire_on_commit=False,
+        autoflush=True
     )
 
     async with session_maker() as session:

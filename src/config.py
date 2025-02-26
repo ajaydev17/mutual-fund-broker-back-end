@@ -3,7 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # we will load the env variables from this class
 class Settings(BaseSettings):
-    DATABASE_URL: str
+    DEV_DATABASE_URL: str
+    TEST_DATABASE_URL: str
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     REDIS_URL: str = 'redis://localhost:6379/0'
