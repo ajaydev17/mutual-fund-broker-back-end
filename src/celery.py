@@ -7,9 +7,9 @@ c_app.config_from_object("src.config")
 
 # celery beat config
 c_app.conf.beat_schedule = {
-    "check-investments-every-5-mins": {
+    "check-investments-every-hour": {
         "task": "src.celery_tasks.check_investments",  # Correct task name
-        "schedule": crontab(minute="*/2"),  # Runs every 5 minutes
+        "schedule": crontab(minute=0, hour='*'),  # Runs every 5 minutes
     },
 }
 

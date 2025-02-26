@@ -59,7 +59,7 @@ async def create_user(user_data: UserCreateSchema,
     send_email.delay(emails, subject, html)
 
     return {
-        "message": "Account Created! Check email to verify your account",
+        "message": "Account Created! Check email to verify your account!!.",
         "user": user,
     }
 
@@ -73,12 +73,12 @@ async def login_user(user_data: UserLoginSchema, session: AsyncSession = Depends
     # get the user by email
     user = await user_service.get_user_by_email(email, session)
 
-    # raise error if account is not verified
-    if not user.is_verified:
-        raise AccountNotVerified()
-
     # if account is valid proceed and create the access token
     if user:
+        # raise error if account is not verified
+        if not user.is_verified:
+            raise AccountNotVerified()
+
         # check password is valid
         is_password_valid = verify_password_hash(password, user.password_hash)
 
@@ -269,3 +269,12 @@ async def reset_password(token: str, passwords: PasswordResetConfirmSchema, sess
 @auth_router.get('/me', response_model=UserInvestmentSchemaView)
 async def get_current_user_details(current_user: UserViewSchema = Depends(get_current_user)) -> UserInvestmentSchemaView:
     return current_user
+
+
+# route for welcome message
+# route for getting the current logged in user
+@auth_router.get('/welcome')
+async def get_current_user_details():
+    return {
+        "message": "Welcome to Your Portfolio"
+    }

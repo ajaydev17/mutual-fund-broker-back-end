@@ -95,7 +95,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_403_FORBIDDEN,
             initial_detail={
-                "message": "User with email already exists",
+                "message": "User with email already exists!!.",
                 "error_code": "user_exists"
             }
         )
@@ -106,7 +106,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_400_BAD_REQUEST,
             initial_detail={
-                "message": "Invalid credentials",
+                "message": "Invalid credentials!!.",
                 "error_code": "invalid_credentials"
             }
         )
@@ -117,7 +117,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_401_UNAUTHORIZED,
             initial_detail={
-                "message": "Invalid token",
+                "message": "Invalid token!!.",
                 "resolution": "Please get a new token",
                 "error_code": "invalid_token"
             }
@@ -129,7 +129,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_401_UNAUTHORIZED,
             initial_detail={
-                "message": "Access token required",
+                "message": "Access token required!!.",
                 "resolution": "Please provide an access token",
                 "error_code": "access_token_required"
             }
@@ -141,7 +141,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_403_FORBIDDEN,
             initial_detail={
-                "message": "Refresh token required",
+                "message": "Refresh token required!!.",
                 "resolution": "Please provide a refresh token",
                 "error_code": "refresh_token_required"
             }
@@ -153,7 +153,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_404_NOT_FOUND,
             initial_detail={
-                "message": "User not found",
+                "message": "User not found!!.",
                 "error_code": "user_not_found"
             }
         )
@@ -164,7 +164,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_403_FORBIDDEN,
             initial_detail={
-                "message": "Account Not verified",
+                "message": "Account Not verified!!.",
                 "error_code": "account_not_verified",
                 "resolution": "Please check your email for verification details"
             },
@@ -176,7 +176,7 @@ def register_all_exceptions(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_404_NOT_FOUND,
             initial_detail={
-                "message": "Investment not found",
+                "message": "Investment not found!!.",
                 "error_code": "investment_not_found"
             }
         )
@@ -185,9 +185,9 @@ def register_all_exceptions(app: FastAPI):
     app.add_exception_handler(
         SchemeCodeAlreadyExists,
         create_exception_handler(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_403_FORBIDDEN,
             initial_detail={
-                "message": "Investment already exists for this scheme code",
+                "message": "Investment already exists for this scheme code!!.",
                 "error_code": "investment_already_exists_for_this_scheme_code"
             }
         )

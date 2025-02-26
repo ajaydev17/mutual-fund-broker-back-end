@@ -5,6 +5,7 @@ from src.investment.schemas import InvestmentCreateSchema, InvestmentUpdateSchem
 from sqlmodel import select, desc, and_
 from src.db.models import Investment
 from src.investment.utils import get_open_schemes_codes
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class InvestmentService:
@@ -37,9 +38,9 @@ class InvestmentService:
         investment.user_id = user_id
         investment.fund_family = found_scheme['Mutual_Fund_Family']
         investment.scheme_name = found_scheme['Scheme_Name']
-        investment.nav = found_scheme['Net_Asset_Value']
+        investment.nav = Decimal(found_scheme['Net_Asset_Value']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         investment.date = found_scheme['Date']
-        investment.current_value = found_scheme['Net_Asset_Value']* investment_data.units
+        investment.current_value = Decimal(found_scheme['Net_Asset_Value'] * investment_data.units).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # add to the db
         session.add(investment)
@@ -67,7 +68,7 @@ class InvestmentService:
 
         # update the current nav values of units
         if "units" in investment_data_dict and investment.current_value is not None and investment.nav is not None:
-            investment.current_value = investment.nav * investment_data_dict["units"]
+            investment.current_value = Decimal(investment.nav * investment_data_dict["units"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         await session.commit()
         await session.refresh(investment)
@@ -98,16 +99,16 @@ class InvestmentService:
         try:
             for investment in investments:
                 latest_mutual_fund_info = await get_open_schemes_codes(investment.scheme_code)
-                investment.nav = latest_mutual_fund_info['Net_Asset_Value']
-                investment.current_value = latest_mutual_fund_info['Net_Asset_Value'] * investment.units * 5
+                investment.nav = Decimal(latest_mutual_fund_info['Net_Asset_Value']).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                investment.current_value = Decimal(latest_mutual_fund_info['Net_Asset_Value'] * investment.units * 6).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                 session.add(investment)
 
             await session.commit()
 
-            print("Done updating investments every 5 minutes...")
+            print("Done updating investments every hour...")
 
             return {
-                'message': 'All NAV Updated successfully!!.'
+                'message': 'All NAVs have been updated successfully.'
             }
         except Exception as e:
             print(f"Exception occurred while updating the NAV details: {str(e)}")
