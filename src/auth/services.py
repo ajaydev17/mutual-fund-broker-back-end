@@ -28,6 +28,7 @@ class UserService:
         # add user to db
         session.add(user)
         await session.commit()
+        await session.refresh(user)
         return user
 
     # update user details

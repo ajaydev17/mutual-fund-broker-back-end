@@ -20,12 +20,12 @@ access_token_bearer = AccessTokenBearer()
 
 
 # fetch an investments
-@investment_router.post('/get-an-investment', response_model=InvestmentViewSchema, status_code=status.HTTP_200_OK)
-async def get_an_investment(investment_data: InvestmentGetSchema, session: AsyncSession = Depends(get_session), token_details: dict = Depends(access_token_bearer)) -> dict:
+@investment_router.get('/get-an-investment/{scheme_code}', response_model=InvestmentViewSchema, status_code=status.HTTP_200_OK)
+async def get_an_investment(scheme_code: int, session: AsyncSession = Depends(get_session), token_details: dict = Depends(access_token_bearer)) -> dict:
     user_id = token_details.get('user')['user_id']
 
     # update the investment
-    investment = await investment_service.get_investment_by_user_id_scheme_code(user_id, investment_data.scheme_code, session)
+    investment = await investment_service.get_investment_by_user_id_scheme_code(user_id, scheme_code, session)
 
     if investment:
         return investment
