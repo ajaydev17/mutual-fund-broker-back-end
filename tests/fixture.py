@@ -42,8 +42,8 @@ async def db_session():
         yield session
 
     # stopping the container once test is done
-    # container.stop()
-    # container.remove()
+    container.stop()
+    container.remove()
 
     await async_engine.dispose()
 
