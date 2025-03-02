@@ -8,6 +8,7 @@ from src.db.redis_db import check_jti_in_blocklist
 from src.db.main import get_session
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from src.auth.schemas import UserInvestmentSchemaView
+from src.errors import UserNotFound
 
 # create an instance of the user service
 user_service = UserService()
@@ -72,4 +73,8 @@ async def get_current_user(token_details: dict = Depends(access_token_bearer), s
 
     # get the user details
     user = await user_service.get_user_by_email(user_email, session)
+
+    if not user:
+        raise UserNotFound()
+
     return user

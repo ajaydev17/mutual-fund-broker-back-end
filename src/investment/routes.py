@@ -61,12 +61,12 @@ async def update_an_investment(investment_data: InvestmentUpdateSchema, session:
         raise InvestmentNotFound()
 
 # delete an investment
-@investment_router.delete('', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_an_investment(investment_data: InvestmentDeleteSchema, session: AsyncSession = Depends(get_session), token_details: dict = Depends(access_token_bearer)) -> None:
+@investment_router.delete('/delete-an-investment/{scheme_code}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_an_investment(scheme_code: int, session: AsyncSession = Depends(get_session), token_details: dict = Depends(access_token_bearer)) -> None:
     user_id = token_details.get('user')['user_id']
 
     # delete the investment
-    investment = await investment_service.delete_an_investment(user_id, investment_data.scheme_code, session)
+    investment = await investment_service.delete_an_investment(user_id, scheme_code, session)
 
     if not investment:
         raise InvestmentNotFound()
