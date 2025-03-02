@@ -13,10 +13,6 @@ async def create_test_user(client, db_session_integration):
     headers = {"Content-Type": "application/json"}
     response = await client.post("api/v1/auth/signup", json=user_data, headers=headers)
 
-    # Debug print to check the response in case of failure
-    print("Signup Response Status:", response.status_code)
-    print("Signup Response Body:", response.json())
-
     # Ensure user is created successfully
     assert response.status_code == 201
 
@@ -72,7 +68,7 @@ async def test_integrate_user_login(client, db_session_integration):
     return response
 
 
-async def test_get_current_user_info(client, db_session_integration):
+async def test_integrate_get_current_user_info(client, db_session_integration):
     global access_token  # Access the global token
 
     # Ensure the token is available
@@ -91,7 +87,7 @@ async def test_get_current_user_info(client, db_session_integration):
     print("Current User Info:", user_info)
     return user_info
 
-async def test_create_investment(client, db_session_integration):
+async def test_integrate_create_investment(client, db_session_integration):
     global access_token  # Access the global token
 
     # Investment data
@@ -121,7 +117,7 @@ async def test_create_investment(client, db_session_integration):
     return investment
 
 
-async def test_update_investment(client, db_session_integration):
+async def test_integrate_update_investment(client, db_session_integration):
     global access_token
 
     investment_update_data = {
@@ -141,7 +137,7 @@ async def test_update_investment(client, db_session_integration):
     print("Investment Updated:", investment)
 
 
-async def test_get_investment(client, db_session_integration):
+async def test_integrate_get_investment(client, db_session_integration):
     global access_token
     scheme_code = 100044
 
@@ -156,7 +152,7 @@ async def test_get_investment(client, db_session_integration):
     print("Retrieved Investment:", investment)
 
 
-async def test_delete_investment(client, db_session_integration):
+async def test_integrate_delete_investment(client, db_session_integration):
     global access_token
     scheme_code = 100044
 
@@ -168,7 +164,7 @@ async def test_delete_investment(client, db_session_integration):
     print("Investment Deleted:", scheme_code)
 
 
-async def test_integrate_user_logout(client, db_session_integration):
+async def test_integrate_integrate_user_logout(client, db_session_integration):
     global access_token  # Access the global variable
 
     # Ensure the token is available
