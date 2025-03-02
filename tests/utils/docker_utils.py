@@ -7,6 +7,11 @@ def is_container_ready(container):
     container.reload()
     return container.status == 'running'
 
+def is_postgres_ready(container):
+    """Check if Postgres inside the container is ready."""
+    exit_code, _ = container.exec_run("pg_isready -U postgres")
+    return exit_code == 0
+
 
 def wait_for_stable_status(container, stable_duration=3, interval=1):
     start_time = time.time()
@@ -61,14 +66,21 @@ def start_database_container():
         'network_mode': 'mutual-fund-server_dev-network'
     }
 
-    container = client.containers.run(**container_config)
+    try:
+        container = client.containers.run(**container_config)
+    except docker.errors.ImageNotFound:
+        print("Docker image not found! Please pull the image first.")
+        raise
 
-    while not is_container_ready(container):
-        time.sleep(1)
-
-    time.sleep(60)
+        # Check if container is ready and if Postgres is up
+    for _ in range(30):  # Wait up to 60 seconds (30 * 2)
+        if is_container_ready(container) and is_postgres_ready(container):
+            break
+        time.sleep(2)
+    else:
+        raise RuntimeError('Database container did not become ready in time!')
 
     if not wait_for_stable_status(container):
-        raise RuntimeError('Container did not stabilize with in the specified time!!')
+        raise RuntimeError('Container did not stabilize within the specified time!')
 
     return container

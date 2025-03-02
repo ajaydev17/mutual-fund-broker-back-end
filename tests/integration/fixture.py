@@ -11,20 +11,19 @@ from src import app
 from src.db.main import get_session
 import asyncio
 from unittest.mock import AsyncMock
-import docker
 
 
 from src.config import config_obj
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     loop = asyncio.new_event_loop()
+#     yield loop
+#     loop.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def db_session():
+async def db_session_integration():
     # Start the database container
     container = docker_utils.start_database_container()
 
@@ -52,19 +51,12 @@ async def db_session():
     except Exception as e:
         print('container not found')
 
+    # Dispose the async engine
     await async_engine.dispose()
 
 
-
 @pytest.fixture(scope='function')
-async def client(db_session):
-    app.dependency_overrides[get_session] = lambda: db_session
+async def client(db_session_integration):
+    app.dependency_overrides[get_session] = lambda: db_session_integration
     async with AsyncClient(transport=ASGITransport(app=app), base_url='http://localhost') as client:
         yield client
-
-@pytest.fixture(scope="function")
-async def mock_session():
-    mock_session = AsyncMock(spec=AsyncSession)
-    app.dependency_overrides[get_session] = lambda: mock_session
-    yield mock_session
-    app.dependency_overrides.clear()
